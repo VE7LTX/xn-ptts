@@ -93,9 +93,12 @@ int main(int argc, char **argv) {
     if (!ok) {
         fprintf(stderr, "cannot speak: %s\n", ptts_last_error(h));
     } else {
+        // This needs OUT.wav to be a file: a pipe cannot seek back to the header.
         wav_header(header, (uint32_t)result.samples);
-        fseek(out, 0, SEEK_SET);
-        fwrite(header, 1, sizeof header, out);
+        if (fseek(out, 0, SEEK_SET) != 0 || fwrite(header, 1, sizeof header, out) != sizeof header) {
+            perror(path);
+            ok = false;
+        }
     }
     int write_error = ferror(out);
     if (fclose(out) != 0 || write_error) {

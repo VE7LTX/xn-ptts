@@ -100,10 +100,10 @@ jobs:
         run: cargo test -p ptts --doc && cargo test -p ptts --features hf,audio --doc
         shell: bash
       # The C interface as a C program sees it. `ptts.h` is written by hand, so the C guide's
-      # example is compiled against the built library: a call the header declares but the
-      # library no longer exports fails to link. With no model it can only fail to load one,
-      # which still runs `ptts_new` and `ptts_last_error` through the C ABI. Not on Windows,
-      # whose linker takes different flags.
+      # example is compiled against the built library: a call it makes that the library no
+      # longer exports fails to link. Argument types are not checked. With no model it can only
+      # fail to load one, which still runs `ptts_new` and `ptts_last_error` through the C ABI.
+      # Not on Windows, whose linker takes different flags.
       - name: C example
         if: runner.os != 'Windows' && matrix.rust == 'stable'
         shell: bash
