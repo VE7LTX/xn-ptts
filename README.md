@@ -103,12 +103,13 @@ Each goal links to its quickstart below.
 | [Give Home Assistant's voice assistant a local voice](ptts-openai-server/README.md#home-assistant) | Home Assistant app | [phonon-home-assistant](https://github.com/gradium-ai/phonon-home-assistant) | App for Home Assistant OS that runs the server image and connects it to your voice assistants. No custom integration. |
 | [Connect an existing app or self-host](#docker-and-openai-compatible-api) | `ptts-openai-server` | `ghcr.io/gradium-ai/ptts-openai-server:<version>` | CPU image for amd64 and arm64; it downloads the default model on first start, or mounts your own. [Server guide](ptts-openai-server/README.md). |
 | [Embed the runtime in Rust](#rust) | Rust `ptts` | [crates.io](https://crates.io/crates/ptts) | Library API; add the `cli` feature to install the command. [Rust guide](ptts/README.md). |
+| [Call Phonon from C, C++ or another language](#c) | C library | [Build guide](ptts-ffi/README.md#1-build-the-library) | `ptts.h` and `libptts_ffi`, built from source with Rust, for Linux, Windows, macOS, iOS and Android. Works from any language that can call C. [C guide](ptts-ffi/README.md). |
 
 The packages are named **`ptts`**, except the npm package **`phonon-tts`**; Swift apps `import PhononTTS`.
 
 ## Model setup
 
-Without a model argument, the command line, Python, the browser package, the servers and Rust download the default model from Hugging Face on first use and cache it. The default is Phonon 31m, [`hf://gradium/phonon-31m-en`](https://huggingface.co/gradium/phonon-31m-en), pinned to one commit. Swift and Android load a model bundle you add to the app.
+Without a model argument, the command line, Python, the browser package, the servers and Rust download the default model from Hugging Face on first use and cache it. The default is Phonon 31m, [`hf://gradium/phonon-31m-en`](https://huggingface.co/gradium/phonon-31m-en), pinned to one commit. Swift, Android and the C library load a model folder you supply.
 
 The Phonon models on Hugging Face:
 
@@ -345,7 +346,7 @@ tts.speak("Hello from Phonon.") { pcm ->
 
 The QNN guide covers native library extraction, model bundles and the runnable Speak/Stop example.
 
-**CPU:** The existing [Android guide](android/README.md) provides a Kotlin wrapper and C API. From the repository root:
+**CPU:** The existing [Android guide](android/README.md) provides a Kotlin wrapper over the [C library](#c). From the repository root:
 
 ```sh
 cargo install cargo-ndk
@@ -413,6 +414,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 Build with `--release` and reuse the model. `tts.stream(text)?` yields audio chunks for your own playback. `Checkpoint::locate` also takes a local folder or `hf://OWNER/MODEL@COMMIT_SHA`. Without the `hub` feature the library never downloads, and reads local folders only. [Rust API and small example →](ptts/README.md)
+
+</details>
+
+### C
+
+<details>
+<summary>Show C quickstart</summary>
+
+Build the library from a checkout of this repository. It needs Rust:
+
+```sh
+cargo build --release -p ptts-ffi
+```
+
+This writes `libptts_ffi` to `target/release/`. Include [`ptts.h`](ptts-ffi/include/ptts.h) and link the library:
+
+```c
+#include "ptts.h"
+
+static bool on_audio(const float *pcm, size_t n, void *user) {
+    // Play or save `n` samples: 24 kHz mono, in [-1, 1].
+    return true; // false stops early
+}
+
+PttsHandle *h = ptts_new("phonon-31m-en", PTTS_UNIT_CPU, "en");
+PttsResult result;
+ptts_speak(h, "Hello from Phonon.", on_audio, NULL, &result);
+ptts_free(h);
+```
+
+`phonon-31m-en` is the default model's folder, downloaded as the C guide shows: the library itself never downloads. On macOS and iOS the library runs Core ML, so pass a Core ML bundle instead. Load once and reuse the handle. [C guide, with error handling and a complete example →](ptts-ffi/README.md)
 
 </details>
 
