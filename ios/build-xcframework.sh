@@ -1,12 +1,13 @@
 #!/bin/bash
 # Build PhononCore.xcframework, the compiled Rust core the ptts Swift package wraps:
-# iPhone, the iOS simulator and Apple-silicon Macs, each a static library with the C header.
+# iPhone, the iOS simulator, Apple-silicon Macs and Mac Catalyst on Apple silicon, each a static
+# library with the C header.
 #
 # Output: ios/PhononTTS/PhononCore.xcframework
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-TARGETS=(aarch64-apple-ios aarch64-apple-ios-sim aarch64-apple-darwin)
+TARGETS=(aarch64-apple-ios aarch64-apple-ios-sim aarch64-apple-darwin aarch64-apple-ios-macabi)
 TARGET_DIR="${CARGO_TARGET_DIR:-target}"
 PROFILE=release
 

@@ -145,7 +145,7 @@ jobs:
       - uses: ./.github/actions/setup-rust
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         with:
-          targets: aarch64-apple-ios aarch64-apple-ios-sim
+          targets: aarch64-apple-ios aarch64-apple-ios-sim aarch64-apple-ios-macabi
           cache-key: swift-release
           audio-deps: 'false'
       - uses: actions/setup-python@v7
