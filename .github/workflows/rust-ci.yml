@@ -21,6 +21,9 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  # What the speech jobs say, and what `speech-check` holds every recording to. No numbers:
+  # Whisper writes those the way it expects them, not the way they were said.
+  SPEECH_TEXT: The weather was cold this morning. We drank hot tea by the window and talked about the trip.
 
 # `--all-features` is never used anywhere here: it turns on `cuda`, whose `cudarc` build script
 # shells out to `nvcc` and fails on every runner. Feature sets are named explicitly.
@@ -274,6 +277,13 @@ jobs:
         env:
           RUSTFLAGS: -C target-feature=+simd128,+relaxed-simd
         run: make build
+      - name: Keep the package for the browser speech job
+        uses: actions/upload-artifact@v7
+        with:
+          name: phonon-tts
+          path: ptts-wasm/pkg/
+          if-no-files-found: error
+          retention-days: 3
 
   coreml:
     name: Core ML and the Swift package
@@ -307,11 +317,158 @@ jobs:
           python3 scripts/package-swift.py check
           swift package dump-package > /dev/null
 
+  # The default model, from the Hugging Face Hub, speaking through every backend a hosted runner
+  # can run. Nothing else here loads real weights, so a broken kernel, weight format or
+  # tokenizer could ruin the audio with every other job green. Each leg writes WAV files and
+  # `speech-check` listens to them. The command is built with the flags its release is
+  # (`cli-release.yml`), since the CPU kernels are picked at compile time. CUDA and the Neural
+  # Engine need hardware no hosted runner has.
+  speech:
+    name: Speech ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            os: ubuntu-latest
+            rustflags: -C target-cpu=x86-64-v3
+            features: vulkan
+            gpu: vulkan
+          # No dotprod, like the aarch64 Linux release, so xn's kernels for older Arm cores run.
+          - name: linux-arm64
+            os: ubuntu-24.04-arm
+            rustflags: -C target-cpu=generic
+          - name: macos
+            os: macos-latest
+            rustflags: -C target-cpu=apple-m1
+            features: accelerate,kai,metal
+            gpu: metal
+          - name: windows
+            os: windows-latest
+            rustflags: -C target-cpu=x86-64-v3
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-rust
+        with:
+          cache-key: speech
+          audio-deps: "false"
+      # glslc to build the shaders, and Mesa's lavapipe, a Vulkan driver that runs on the CPU.
+      - name: Install glslc and a software Vulkan driver
+        if: matrix.gpu == 'vulkan'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends glslc mesa-vulkan-drivers
+      - name: Build the command
+        run: cargo build --release --locked -p ptts --features cli,${{ matrix.features }} --bin ptts
+      - name: Speak on the CPU and the GPU
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HF_HOME="$RUNNER_TEMP/hf"
+          echo "HF_HOME=$HF_HOME" >> "$GITHUB_ENV"
+          mkdir -p speech
+          say() {
+            local name=$1
+            shift
+            target/release/ptts --lang en "$@" -o "speech/${{ matrix.name }}-$name.wav" "$SPEECH_TEXT"
+          }
+          for quant in f32 q8 q4k; do
+            say "cpu-$quant" --device cpu --quant "$quant"
+          done
+          if [ -n "${{ matrix.gpu }}" ]; then
+            say "${{ matrix.gpu }}-f32" --device "${{ matrix.gpu }}" --quant f32
+          fi
+      # `speak.c` against the C interface: on macOS its Core ML engine, which needs the
+      # checkpoint exported first, and elsewhere its CPU one, which reads the checkpoint the
+      # command just downloaded. Not on Windows, whose linker takes different flags.
+      - name: Speak through the C interface
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          model=$(echo "$HF_HOME"/hub/models--*/snapshots/*)
+          name=c-api
+          if [ "$RUNNER_OS" = macOS ]; then
+            cargo run --release --locked -p ptts --example export_coreml -- --model "$model" "$RUNNER_TEMP/bundle"
+            model=$RUNNER_TEMP/bundle
+            name=coreml
+          fi
+          cargo build --release --locked -p ptts-ffi
+          cc -std=c11 -O2 ptts-ffi/examples/speak.c -I ptts-ffi/include -L target/release -lptts_ffi \
+            -Wl,-rpath,"$PWD/target/release" -o "$RUNNER_TEMP/speak"
+          "$RUNNER_TEMP/speak" "$model" en "$SPEECH_TEXT" "speech/${{ matrix.name }}-$name.wav"
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: speech-${{ matrix.name }}
+          path: speech/
+          if-no-files-found: error
+          retention-days: 14
+
+  # The npm package `wasm` built, in headless Chrome: the threaded build on a cross-origin
+  # isolated page, the single-threaded one without isolation, and WebGPU on SwiftShader, the
+  # software adapter Chrome ships.
+  speech-browser:
+    name: Speech in the browser
+    needs: wasm
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: phonon-tts
+          path: ptts-wasm/pkg
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Speak
+        working-directory: ptts-wasm
+        run: |
+          mkdir -p ../speech
+          node scripts/speak-in-chrome.mjs --text "$SPEECH_TEXT" --out ../speech/browser-cpu.wav
+          node scripts/speak-in-chrome.mjs --text "$SPEECH_TEXT" --out ../speech/browser-cpu-one-thread.wav \
+            --no-isolation
+          node scripts/speak-in-chrome.mjs --text "$SPEECH_TEXT" --out ../speech/browser-webgpu.wav \
+            --device webgpu -- --enable-unsafe-webgpu --enable-features=Vulkan --use-webgpu-adapter=swiftshader
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: speech-browser
+          path: speech/
+          if-no-files-found: error
+          retention-days: 14
+
+  # Whisper transcribes every recording, which has to read back as `SPEECH_TEXT`. Listening is
+  # the point: a wrong tokenizer or broken weights still make fluent-sounding speech. Runs even
+  # when a speech job failed, to check what the others made.
+  speech-check:
+    name: Speech check
+    if: ${{ !cancelled() }}
+    needs: [speech, speech-browser]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: speech-*
+          path: speech
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install faster-whisper==1.2.1
+      - run: python scripts/check-speech.py --text "$SPEECH_TEXT" speech
+
   # One job to require in branch protection, instead of every matrix leg by name.
   ci-ok:
     name: CI
     if: always()
-    needs: [fmt, clippy, test, features, docs, wasm, coreml]
+    needs: [fmt, clippy, test, features, docs, wasm, coreml, speech, speech-browser, speech-check]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
