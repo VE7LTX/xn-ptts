@@ -319,7 +319,7 @@ let player = try PhononPlayer()
 try await player.play(tts.stream("Hello from Phonon."))
 ```
 
-In an app, keep `tts` and `player` as properties of an object that stays alive, not as local constants: `play` returns when generation ends, and releasing the player stops the audio. You can also download models on first run. Requires iOS 18+ or macOS 15+ on Apple silicon. [Swift guide and Stop example →](ios/PhononTTS/README.md)
+In an app, keep `tts` and `player` as properties of an object that stays alive, not as local constants: `play` returns when generation ends, and releasing the player stops the audio. You can also download models on first run. Requires iOS 18+ or macOS 15+ on Apple silicon, including Mac Catalyst apps. [Swift guide and Stop example →](ios/PhononTTS/README.md)
 
 </details>
 

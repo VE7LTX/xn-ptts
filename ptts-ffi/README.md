@@ -52,9 +52,10 @@ Phones and Apple apps have their own build scripts:
 - **Android:** [`android/build.sh`](../android/build.sh) builds `libptts_ffi.so` for phones and
   the emulator. See the [Android guide](../android/README.md#1-build-the-library).
 - **iOS and macOS apps:** [`ios/build-xcframework.sh`](../ios/build-xcframework.sh) builds
-  `PhononCore.xcframework`: the static library and `ptts.h` for iPhone, the simulator and
-  Apple-silicon Macs. Each [release](https://github.com/gradium-ai/xn-ptts/releases) has it
-  prebuilt as `PhononCore.xcframework.zip`, so an Xcode project needs no Rust.
+  `PhononCore.xcframework`: the static library and `ptts.h` for iPhone, the simulator,
+  Apple-silicon Macs and Mac Catalyst. Each
+  [release](https://github.com/gradium-ai/xn-ptts/releases) has it prebuilt as
+  `PhononCore.xcframework.zip`, so an Xcode project needs no Rust.
 
 ## 2. Get a model
 
