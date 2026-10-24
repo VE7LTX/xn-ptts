@@ -158,4 +158,4 @@ This build speaks with ready-made voices only: cloning from an audio sample is n
 
 ## Licence
 
-The package is MIT OR Apache-2.0. Model weights are not part of it and come with their own licenses: Phonon 31m is under Apache 2.0, and Phonon 40m and Phonon 40m multilingual are under CC BY-NC 4.0. See each model's page on Hugging Face.
+The package is MIT OR Apache-2.0. The Rust crates compiled into its WebAssembly modules keep their own licences, and their notices are in `THIRD_PARTY_LICENSES.md`. Model weights are not part of it and come with their own licenses: Phonon 31m is under Apache 2.0, and Phonon 40m and Phonon 40m multilingual are under CC BY-NC 4.0. See each model's page on Hugging Face.

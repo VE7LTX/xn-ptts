@@ -262,7 +262,7 @@ jobs:
       # needs a newer one fails here rather than for whoever builds the package next.
       - uses: taiki-e/install-action@v2
         with:
-          tool: wasm-pack
+          tool: wasm-pack,cargo-about@0.9
       - name: Install binaryen
         run: |
           curl -sSfL https://github.com/WebAssembly/binaryen/releases/download/version_124/binaryen-version_124-x86_64-linux.tar.gz \

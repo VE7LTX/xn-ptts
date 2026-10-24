@@ -1,4 +1,4 @@
-.PHONY: build profiling demo serve test clean check-wasm-opt check-model-dir check-threads-toolchain threads-toolchain
+.PHONY: build profiling demo serve test clean check-wasm-opt check-cargo-about check-model-dir check-threads-toolchain threads-toolchain
 
 WASM_PACK_ARGS = --target web --no-pack --out-dir pkg/wasm --out-name phonon_tts
 # Both builds can run on the GPU: the package uses WebGPU when the browser has it, and the
@@ -36,14 +36,20 @@ THREADS_SIMD_WASM_PACK = RUSTUP_TOOLCHAIN=$(THREADS_TOOLCHAIN) \
 	wasm-pack build --target web --no-pack --out-dir pkg/wasm-threads-simd --out-name phonon_tts --release \
 	-- --features threads,$(FEATURES) -Z build-std=std,panic_abort
 
+# The licence notices of every crate compiled into the modules, which the package ships beside
+# them: the threaded build's features cover the single-threaded one's.
+LICENSES = cargo about generate --locked --fail --features threads,$(FEATURES) \
+	-c about.toml about.hbs -o pkg/THIRD_PARTY_LICENSES.md
+
 # The `phonon-tts` npm package, ready to publish from pkg/: both builds, each with and without
-# Relaxed SIMD, and the JS around them.
-build: check-wasm-opt check-threads-toolchain
+# Relaxed SIMD, the JS around them and the third-party licence notices.
+build: check-wasm-opt check-threads-toolchain check-cargo-about
 	rm -rf pkg
 	wasm-pack build $(WASM_PACK_ARGS) --release -- --features $(FEATURES)
 	$(THREADS_WASM_PACK)
 	$(SIMD_WASM_PACK)
 	$(THREADS_SIMD_WASM_PACK)
+	$(LICENSES)
 	node scripts/pack.mjs pkg
 
 # Same, without wasm-opt, keeping names for the browser profiler. Single-threaded build only.
@@ -64,6 +70,12 @@ check-wasm-opt:
 	  echo "For an unoptimized local build without binaryen, run 'make profiling' instead."; \
 	  exit 1; \
 	fi
+
+check-cargo-about:
+	@cargo about --version >/dev/null 2>&1 || { \
+	  echo "make build needs cargo-about, to write the package's third-party licence notices."; \
+	  echo "Install it with 'cargo install cargo-about --locked --features cli'."; \
+	  exit 1; }
 
 check-threads-toolchain:
 	@rustup run $(THREADS_TOOLCHAIN) rustc --print sysroot >/dev/null 2>&1 && \

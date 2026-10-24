@@ -62,9 +62,10 @@ jobs:
           targets: wasm32-unknown-unknown
           cache-key: npm
           audio-deps: "false"
+      # cargo-about writes the package's third-party licence notices.
       - uses: taiki-e/install-action@v2
         with:
-          tool: wasm-pack
+          tool: wasm-pack,cargo-about@0.9
       # `make build` runs wasm-opt, and binaryen up to 123 aborts on this module. 124 is the
       # oldest release that works, and the floor the Makefile checks for. Pinned to the same
       # version the `wasm` job in rust-ci.yml uses, so the package is optimized by the binary

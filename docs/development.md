@@ -50,7 +50,7 @@ Replace the example path with the actual wheel filename. [Python guide](../ptts-
 
 ## Browser
 
-Requires Rust with the Wasm target, Node 22.7+, [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/), and binaryen 124+ (`wasm-opt` on `PATH`). The threaded build also uses a pinned nightly toolchain installed by the Makefile.
+Requires Rust with the Wasm target, Node 22.7+, [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/), binaryen 124+ (`wasm-opt` on `PATH`), and [cargo-about](https://github.com/EmbarkStudios/cargo-about) for the package's third-party licence notices. The threaded build also uses a pinned nightly toolchain installed by the Makefile.
 
 ```sh
 rustup target add wasm32-unknown-unknown
