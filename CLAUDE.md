@@ -18,7 +18,7 @@ Shared dependency versions (notably `xn`) and the workspace version live in the 
 
 ## Build / test / lint
 
-CI (`.github/workflows/rust-ci.yml`) is the source of truth. Eleven jobs, gated behind one
+CI (`.github/workflows/rust-ci.yml`) is the source of truth. Twelve jobs, gated behind one
 required check called `CI`:
 
 | Job | What it covers |
@@ -30,6 +30,7 @@ required check called `CI`:
 | `docs` | `cargo doc` on nightly with `--cfg docsrs` exactly as docs.rs builds it, then again on stable |
 | `wasm` | `ptts-wasm` for `wasm32-unknown-unknown` with the SIMD flags real builds use, with and without `webgpu`; the `phonon-tts` JS wrapper's node tests; and `make build` with binaryen 124 |
 | `coreml` | macOS only: clippy on `ptts-coreml` and `ptts-ffi` for macOS and iOS, then `ios/build-xcframework.sh` and `swift build` of the `PhononTTS` package, and the root `Package.swift` checked against it |
+| `changes` | whether the three speech jobs run: only when the change touches `ptts*/`, `Cargo.toml`, `Cargo.lock`, `rust-ci.yml`, `setup-rust` or `scripts/check-speech.py`, and on every manual run. `CI` accepts them skipped only then |
 | `speech` | the default model, downloaded from the Hub, speaking `SPEECH_TEXT` on Linux x64/arm64, macOS and Windows: the release-flag command on the CPU with f32, q8 and q4k weights, Vulkan (Mesa's lavapipe) and Metal, and `speak.c` through `ptts-ffi`'s CPU engine on Linux and Core ML on macOS |
 | `speech-browser` | the package `wasm` built, in headless Chrome (`ptts-wasm/scripts/speak-in-chrome.mjs`): threaded, single-threaded and WebGPU on SwiftShader |
 | `speech-check` | `scripts/check-speech.py`: Whisper transcribes every WAV the two jobs above wrote, which must read back as `SPEECH_TEXT` |
