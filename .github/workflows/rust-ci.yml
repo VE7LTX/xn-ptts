@@ -390,7 +390,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          model=$(echo "$HF_HOME"/hub/models--*/snapshots/*)
+          shopt -s nullglob
+          snapshots=("$HF_HOME"/hub/models--*/snapshots/*)
+          if [ "${#snapshots[@]}" -ne 1 ]; then
+            echo "::error::expected one downloaded checkpoint, found ${#snapshots[@]}: ${snapshots[*]:-}"
+            exit 1
+          fi
+          model=${snapshots[0]}
           name=c-api
           if [ "$RUNNER_OS" = macOS ]; then
             cargo run --release --locked -p ptts --example export_coreml -- --model "$model" "$RUNNER_TEMP/bundle"
