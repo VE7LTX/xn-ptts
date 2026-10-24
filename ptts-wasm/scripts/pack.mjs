@@ -39,13 +39,23 @@ writeFileSync(join(out, 'package.json'), JSON.stringify({ name, version, ...rest
 // the copy list and the publish list cannot drift apart. A module added to one but not the
 // other would otherwise ship a package missing a file, and nothing here would say so.
 const fromJs = manifest.files.filter(
-  (f) => !f.startsWith('wasm/') && !f.startsWith('wasm-threads/') && !f.startsWith('LICENSE'),
+  (f) =>
+    !f.startsWith('wasm/') &&
+    !f.startsWith('wasm-threads/') &&
+    !f.startsWith('LICENSE') &&
+    f !== 'THIRD_PARTY_LICENSES.md',
 );
 for (const file of [...fromJs, 'README.md']) {
   copyFileSync(join(js, file), join(out, file));
 }
 for (const file of ['LICENSE-MIT', 'LICENSE-APACHE']) {
   copyFileSync(join(repoDir, file), join(out, file));
+}
+
+// `make build` writes the third-party notices with cargo-about. npm leaves out a `files` entry
+// that does not exist, so a package without them would publish without a word.
+if (!existsSync(join(out, 'THIRD_PARTY_LICENSES.md'))) {
+  console.warn(`no THIRD_PARTY_LICENSES.md in ${out}: this package must not be published`);
 }
 
 // wasm-pack drops a `*` .gitignore into its output. npm reads a .gitignore in a

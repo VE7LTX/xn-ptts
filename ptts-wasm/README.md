@@ -42,7 +42,7 @@ while (true) {
 
 ## Build
 
-Needs [wasm-pack](https://github.com/drager/wasm-pack) 0.12 or later, for `--no-pack` (`cargo install wasm-pack`), node 22.7 or later, for module-syntax detection on the `.js` files under `js/`, and [binaryen](https://github.com/WebAssembly/binaryen/releases)'s `wasm-opt` 124 or later on `PATH` (`brew install binaryen`). The `wasm-opt` that wasm-pack downloads by itself is too old for this module and aborts; `make profiling` skips it. The threaded build also needs the nightly toolchain pinned in the Makefile, with `rust-src`, since wasm threads need std rebuilt with atomics.
+Needs [wasm-pack](https://github.com/drager/wasm-pack) 0.12 or later, for `--no-pack` (`cargo install wasm-pack`), node 22.7 or later, for module-syntax detection on the `.js` files under `js/`, and [binaryen](https://github.com/WebAssembly/binaryen/releases)'s `wasm-opt` 124 or later on `PATH` (`brew install binaryen`). The `wasm-opt` that wasm-pack downloads by itself is too old for this module and aborts; `make profiling` skips it. The threaded build also needs the nightly toolchain pinned in the Makefile, with `rust-src`, since wasm threads need std rebuilt with atomics. [cargo-about](https://github.com/EmbarkStudios/cargo-about) writes the package's `THIRD_PARTY_LICENSES.md`, the licence notices of the crates compiled into it (`cargo install cargo-about --locked --features cli`); `about.toml` lists the licences it accepts.
 
 ```bash
 make threads-toolchain                   # once: the pinned nightly, with rust-src

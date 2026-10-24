@@ -37,7 +37,8 @@
     "wasm/phonon_tts_simd_bg.wasm",
     "wasm-threads/",
     "LICENSE-MIT",
-    "LICENSE-APACHE"
+    "LICENSE-APACHE",
+    "THIRD_PARTY_LICENSES.md"
   ],
   "sideEffects": [
     "./worker.js"
