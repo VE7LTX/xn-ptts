@@ -109,6 +109,8 @@ The packages are named **`ptts`**, except the npm package **`phonon-tts`**; Swif
 
 ## Model setup
 
+**Fork download reference:** [Model weights and voices](docs/model-downloads.md) includes pinned official downloads, a local-file checklist, and licence notes. Model binaries are not stored in this fork.
+
 Without a model argument, the command line, Python, the browser package, the servers and Rust download the default model from Hugging Face on first use and cache it. The default is Phonon 31m, [`hf://gradium/phonon-31m-en`](https://huggingface.co/gradium/phonon-31m-en), pinned to one commit. Swift, Android and the C library load a model folder you supply.
 
 The Phonon models on Hugging Face:
